@@ -21,8 +21,8 @@ jobs:
       #- uses: stefanzweifel/git-auto-commit-action@v4
 
       # Runs a set of commands using the runners shell
-      - name: Test docker
-        run: docker --help
+      - name: Docker compose check
+        run: docker-compose --help
         
       # Get an idea of the dir
       - name: Dir check
