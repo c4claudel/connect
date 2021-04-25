@@ -19,13 +19,13 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
       #- uses: stefanzweifel/git-auto-commit-action@v4
+      
+      # Get an idea of the dir
+      - name: Dir check
+        run: ls -al ~
 
       # Runs a set of commands using the runners shell
       - name: Docker Compose
-        run: sudo docker-compose -f loconotion/docker-compose.yml run -v ~/:/src/ loconotion /src/site.toml
-        
-      # Get an idea of the dir
-      - name: Dir check
-        run: ls -al
+        run: sudo docker-compose -f ~/loconotion/docker-compose.yml run -v ~/:/src/ loconotion /src/site.toml
         
       
