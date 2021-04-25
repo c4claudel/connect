@@ -1,0 +1,11 @@
+version: "3"
+
+services:
+        loconotion:
+                build:
+                        context: .
+                        dockerfile: Dockerfile
+                image: loconotion:latest
+                volumes:
+                        - .:/app/dist
+                restart: always
