@@ -22,7 +22,7 @@ jobs:
       
       # Dir check
       - name: Dir check
-        run: ls -al $(pwd)
+        run: ls -al $(pwd)/loconotion
 
       # Runs a set of commands using the runners shell
       - name: Docker Compose
