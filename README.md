@@ -6,6 +6,12 @@ Loconotion is a great python script that will parse a public Notion page and cre
 
 This repo takes that a step further using Github Pages and Actions to build the static site into /docs. Updating the website is only done by triggering the workflow, meaning no files have to be manually handled or pushed.
 
+The Github hosted runner ubuntu-latest includes everything we need to build loconotion (https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-software):
+* python3
+* pip3
+* chrome/chromium
+* chromedriver
+
 ## Usage
 
 * Clone this repo and rename it
