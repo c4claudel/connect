@@ -24,8 +24,28 @@ jobs:
           submodules: recursive
       
       # Runs a set of commands using the runners shell
-      - name: Docker Compose
-        run: docker-compose run loconotion site.toml
+      - name: Change
+        run: cd loconotion
+        
+      # Clean the output
+      - name: Clean
+        run: rm -f docs/*
+        
+      # Install dependencies
+      - name: Install
+        run: pip3 install -r requirements.txt
+        
+      # Run loconotion
+      - name: Run
+        run: python3 loconotion --clean ../site.toml
+      
+      # Change back
+      - name: Change 2
+        run: cd ..
+        
+      # Copy into github pages folder
+      - name: Copy
+        run: cp loconotion/dist/docs/* docs
         
       # Auto commit the website
       - uses: stefanzweifel/git-auto-commit-action@v4
