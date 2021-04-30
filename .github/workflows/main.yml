@@ -23,13 +23,16 @@ jobs:
         with:
           submodules: recursive
       
+      # Clean the output
+      - name: Clean
+        run: rm -f docs/*
+      
       # Runs a set of commands using the runners shell
       - name: Change
         run: cd loconotion
         
-      # Clean the output
-      - name: Clean
-        run: rm -f docs/*
+      - name: Check
+        run: ls
         
       # Install dependencies
       - name: Install
