@@ -7,4 +7,4 @@ name = "docs"
 
 # the notion.so page to being parsing from. This page will become the index.html
 # of the generated site, and loconotation will parse all sub-pages present on the page
-page = "https://www.notion.so/lucakr-fdcb85af3ef840d383515ca7e4d5a3aa"
+page = "https://www.notion.so/lucakr-a3106710511f42f6908a8b0e6199d86b"
