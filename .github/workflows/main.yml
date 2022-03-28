@@ -37,7 +37,7 @@ jobs:
         
       # Copy into github pages folder
       - name: Copy
-        run: cp loconotion/dist/docs/* docs
+        run: cp loconotion/dist/connectnews/connect/* docs
         
       # Auto commit the website
       - uses: stefanzweifel/git-auto-commit-action@v4
