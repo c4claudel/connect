@@ -43,5 +43,6 @@ jobs:
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           file_pattern: docs/*
+          add_options: '--all'
         
       
