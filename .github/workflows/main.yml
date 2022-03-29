@@ -31,7 +31,7 @@ jobs:
       - name: Install
         run: pip3 install -r loconotion/requirements.txt
       - name: Install2
-        run: pip3 install inlinestyler
+        run: pip3 install inlinestyler html5lib
         
       # Run loconotion
       - name: Run
