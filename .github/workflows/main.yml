@@ -30,6 +30,7 @@ jobs:
       # Install dependencies
       - name: Install
         run: pip3 install -r loconotion/requirements.txt
+      - name: Install2
         run: pip3 install inlinestyler
         
       # Run loconotion
