@@ -30,6 +30,7 @@ jobs:
       # Install dependencies
       - name: Install
         run: pip3 install -r loconotion/requirements.txt
+        run: pip3 install inlinestyler
         
       # Run loconotion
       - name: Run
@@ -43,6 +44,10 @@ jobs:
       - name: CopyResources
         run: cp resources/* docs
 
+      # Copy resource into github pages folder
+      - name: Summarize
+        run: python3 summarize.py docs/connect-* --anchor-original --create-index docs/summaries.html
+        
       # Auto commit the website
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
