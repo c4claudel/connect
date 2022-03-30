@@ -39,6 +39,9 @@ header h1 {
     padding: 1ex;
     margin-bottom: 1em;
 }
+.connect-toc a {
+    line-height: 1.5;
+}
 
 .connect-body {
     max-width: 900px;
