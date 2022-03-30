@@ -10,7 +10,7 @@ on:
     types: [update]
 
 env:
-  NOTION_SECRET: ${{ secrets.NOTION_SECRET }}
+  NOTION_SECRET: ${{ secrets.NOTION_TOKEN }}
   SITE_ROOT: 'https://connectnews.notion.site/connectnews/Connect-9ca6b166f315435786896f072471c888'
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
