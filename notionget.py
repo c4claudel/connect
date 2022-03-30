@@ -116,7 +116,7 @@ def blockToHtml(block, urlmap):
                                else '<h2><a href="%s">%s</a></h2>'  % (i['link'],formatText(i['text'])),
         'paragraph': lambda b: '<div class="connect-paragraph">%s</div>' % formatText(i['text']),
         'divider': (lambda b: '<hr/>'),
-        'image': (lambda b: '<figure><a href="%s"><img src="%s"/></a><figcaption>%s</figcaption></figure>' % (i.get('link') or '',urlmap[b['id']],formatText(i['caption']) if i['caption'] else '')),
+        'image': (lambda b: '<figure><a href="%s" target="_blank"><img src="%s"/></a><figcaption>%s</figcaption></figure>' % (i.get('link') or urlmap[b['id']],urlmap[b['id']],formatText(i['caption']) if i['caption'] else '')),
         'callout': (lambda b: '<div class="connect-callout"><div class="connect-callout-header"><span>%s</span><span>%s</span></div><div class="connect-callout-body">%s</div></div>' % (i['icon']['emoji'],formatText(i['text']),blocksToHtml(b['children'], urlmap))),
         'column': lambda b: '<div class="connect-column %s">%s</div>' % ('column-image' if b['children'][0]['type']=='image' else '', blocksToHtml(b['children'], urlmap)),
         'column_list': lambda b: '<div class="connect-column-list">%s</div>' % blocksToHtml(b['children'], urlmap),
@@ -249,6 +249,9 @@ if __name__ == '__main__':
         slug = urlmap[p['info']['id']]
         with open(OUTDIR+slug,'wt') as f:
             f.write(html)
+        if p['info']['id'] == rootid:
+            with open(OUTDIR+'index.html','wt') as f:
+                f.write(html)
 
         # summary for emailing
         pageurl = SITE_ROOT + slug
