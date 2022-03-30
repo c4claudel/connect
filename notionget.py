@@ -54,14 +54,22 @@ def basename(url):
 def cacheResource(blockid, resource, dest):
     url = resource[resource['type']]['url']
     outname = basename(url)
-    if os.path.exists(dest+outname):
+    extension = outname.split('.')[-1][:4].lower()
+    fullpath = dest+outname
+    if os.path.exists(fullpath):
         print('CACHE OK', url , '->', outname)        
     else:
         r = requests.get(url, timeout=10)
         if r.status_code == 200:
             print('CACHE', url , '->', outname, len(r.content),'B')
-            with open(dest+outname,'wb') as f:
+            with open(fullpath,'wb') as f:
                 f.write(r.content)
+            if extension in ['jpg','png','gif']:
+                #downscaled versions
+                for dim in [320, 1024]:
+                    downfile = fullpath.replace('.'+extension,'-s%d.%s' % (dim, extension))
+                    os.system('convert %s -geometry %dx%d %s'
+                              % (fullpath,dim,dim,downfile))
         else:
             print('CACHE OLD', url , '->', outname, r.status_code)
     return outname
@@ -104,11 +112,11 @@ def blockToHtml(block, urlmap):
     i = block.get(btype) or {}
     OPS = {
         'child_page': lambda b: '<div class="connect-childpage"><a href="%s">%s%s</a></div>' % (urlmap[b['id']],formatIcon(i.get('icon')),i['title']),
-        'heading_1': lambda b: '<h2><a name="%s"/>%s</h2>' % (textToSlug(formatText(i['text'])),formatText(i['text'])) if not i.get('link') \
+        'heading_1': lambda b: '<h2><a name="%s"></a>%s</h2>' % (textToSlug(formatText(i['text'])),formatText(i['text'])) if not i.get('link') \
                                else '<h2><a href="%s">%s</a></h2>'  % (i['link'],formatText(i['text'])),
         'paragraph': lambda b: '<div class="connect-paragraph">%s</div>' % formatText(i['text']),
         'divider': (lambda b: '<hr/>'),
-        'image': (lambda b: '<figure><a href="%s"><img src="%s"/></a><figcaption>%s</figcaption></figure>' % (i.get('link') or '',urlmap[b['id']],i['caption'] or '')),
+        'image': (lambda b: '<figure><a href="%s"><img src="%s"/></a><figcaption>%s</figcaption></figure>' % (i.get('link') or '',urlmap[b['id']],formatText(i['caption']) if i['caption'] else '')),
         'callout': (lambda b: '<div class="connect-callout"><div class="connect-callout-header"><span>%s</span><span>%s</span></div><div class="connect-callout-body">%s</div></div>' % (i['icon']['emoji'],formatText(i['text']),blocksToHtml(b['children'], urlmap))),
         'column': lambda b: '<div class="connect-column %s">%s</div>' % ('column-image' if b['children'][0]['type']=='image' else '', blocksToHtml(b['children'], urlmap)),
         'column_list': lambda b: '<div class="connect-column-list">%s</div>' % blocksToHtml(b['children'], urlmap),
@@ -163,7 +171,7 @@ def preprocesAndCachePage(p):
                ['table_of_contents'])
     return urlmap
 
-def summarizePage(page, site):
+def summarizePage(page):
     articles = [[]]
     currentArticle = None
     ptitle = page['info']['properties']['title']['title'][0]['plain_text']
@@ -235,25 +243,27 @@ if __name__ == '__main__':
 
     #pprint(urlmap)
     for p in pages:
-        html = pageToHtml(p, urlmap, '../resources/connect.css')
+        
+        # output full version
+        html = pageToHtml(p, urlmap, 'connect.css')
         slug = urlmap[p['info']['id']]
         with open(OUTDIR+slug,'wt') as f:
             f.write(html)
 
-    for p in pages:
-        articles = summarizePage(p, 'https://connect.c4claudel.com')
+        # summary for emailing
+        pageurl = SITE_ROOT + slug
+        # TODO - provide downscaled versions
+        fullurlmap = {k:SITE_ROOT + v for k,v in urlmap.items()}
+        articles = summarizePage(p)
         html = '<div class="connect-mail"><style>%s</style>' % open('resources/connect.css','rt').read()
         for i,ar in enumerate(articles):
             more = '<a href="%s">Continue...</a>' % ARTICLE_SLUG_PLACEHOLDER if ar.pop(0) else ''
-            html += '<div class="connect-%s">%s%s</div>' % ('lead' if i==0 else 'article', blocksToHtml(ar, urlmap), more)
+            html += '<div class="connect-%s">%s%s</div>' % ('lead' if i==0 else 'article', blocksToHtml(ar, fullurlmap), more)
             dest = textToSlug(formatText(ar[0].get('heading_1',{}).get('text',[])))
-            html = html.replace(ARTICLE_SLUG_PLACEHOLDER, dest)
-            
+            html = html.replace(ARTICLE_SLUG_PLACEHOLDER, pageurl + '#' + dest)           
         html += '</div>'
-        
         mailablemsg = inline_css(html)
 
-        slug = urlmap[p['info']['id']]
         with open(OUTDIR+slug+'.summary.html','wt') as f:
             f.write(mailablemsg)
     
