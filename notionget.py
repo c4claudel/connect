@@ -10,7 +10,7 @@ from notion_client import Client
 from inlinestyler.utils import inline_css
 
 NOTION_SECRET = os.environ.get('NOTION_SECRET')
-OUTDIR = 'dist/'
+OUTDIR = 'docs/'
 IMAGES_PER_ARTICLE = 1
 WORDS_PER_ARTICLE = 50
 SITE_ROOT = 'https://connect.c4claudel.com/'
