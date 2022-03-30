@@ -9,6 +9,10 @@ on:
   repository_dispatch:
     types: [update]
 
+env:
+  NOTION_SECRET: ${{ secrets.NOTION_SECRET }}
+  SITE_ROOT: 'https://connectnews.notion.site/connectnews/Connect-9ca6b166f315435786896f072471c888'
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
@@ -28,26 +32,30 @@ jobs:
         run: rm -f docs/*
         
       # Install dependencies
-      - name: Install
-        run: pip3 install -r loconotion/requirements.txt
-      - name: Install2
-        run: pip3 install inlinestyler html5lib
-        
-      # Run loconotion
+      #- name: Install
+      #  run: pip3 install -r loconotion/requirements.txt
+      #- name: Install2
+      #  run: pip3 install inlinestyler html5lib notion-client
+
+      # Run Notion fetcher
       - name: Run
-        run: cd loconotion && python3 loconotion --clean ../site.toml
+        run: python3 notionget.py --fetch ${{env.SITE_ROOT}}
+
+      # Run loconotion
+      #- name: Run
+      #  run: cd loconotion && python3 loconotion --clean ../site.toml
         
       # Copy into github pages folder
-      - name: CopyDocs
-        run: cp loconotion/dist/docs/* docs
+      #- name: CopyDocs
+      #  run: cp loconotion/dist/docs/* docs
 
       # Copy resource into github pages folder
       - name: CopyResources
         run: cp resources/* docs
 
       # Copy resource into github pages folder
-      - name: Summarize
-        run: python3 summarize.py docs/connect-* --anchor-original --create-index docs/summaries.html
+      #- name: Summarize
+      #  run: python3 summarize.py docs/connect-* --anchor-original --create-index docs/summaries.html
         
       # Auto commit the website
       - uses: stefanzweifel/git-auto-commit-action@v4
