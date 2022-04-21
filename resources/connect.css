@@ -21,6 +21,10 @@ figcaption {
 .snippet-bold { font-weight: 600; }
 .snippet-italic { font-style: italic; }
 
+header .connect-breadcrumb-parent {
+    background-color: grey;
+    width: 100%;
+}
 header img {
     display: none;
     width: 100%;
@@ -75,6 +79,9 @@ header h1 {
 }
 .connect-callout .connect-callout-body {
     padding-left: 2em; 
+}
+.connect-callout-footer {
+    clear: both;
 }
 .connect-paragraph {
     margin-top: 1ex;

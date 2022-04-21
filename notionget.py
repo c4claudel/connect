@@ -18,8 +18,10 @@ ARTICLE_SLUG_PLACEHOLDER = '--ARTICLE--SLUG--'
 
 class NGet():
     def __init__(self):
+        if not NOTION_SECRET:
+            raise(Exception("no notion secret token. please set NOTION_SECRET"))
         self._client = Client(auth=NOTION_SECRET)
-    def pageInfo(self, pageid):
+    def fetchPage(self, pageid):
         return {
             'info': self._client.pages.retrieve(pageid),
             'blocks': list(self._fetchBlocksRecursively(pageid))
@@ -37,13 +39,29 @@ class NGet():
             if some and 'results' in some:
                 yield from some['results']
                 more = some['has_more']
-    def crawl(self, rootid, ):
-        page = self.pageInfo(rootid)
+    def crawl(self, rootid):
+        page = self.fetchPage(rootid)
         pages = [page]
-        walkBlocks(page['blocks'],
-                   lambda b,x: x.extend(self.crawl(b['id'])),
-                   ['child_page'],
-                   pages)
+        crawled = []
+        done = False
+        while not done:
+            done = True
+            subpages = []
+            def crawlSub(blk, parent):
+                if not blk in subpages:
+                    parentTitle = parent['info']['properties']['title']['title']
+                    print('CRAWL Page ',parentTitle[0]['plain_text'],'->',blk['child_page']['title'])
+                    page = self.fetchPage(blk['id'])
+                    page['parent'] = { 'id': parent['info']['id'], 'title': parentTitle }
+                    subpages.append(page)
+            for page in pages:
+                if not page in crawled:
+                    crawled.append(page)
+                    walkBlocks(page['blocks'], crawlSub, ['child_page'], page)
+            if subpages:
+                pages.extend(subpages)
+            done = not subpages
+            print('CRAWLED', done)
         return pages
 
 def basename(url):
@@ -64,14 +82,13 @@ def cacheResource(blockid, resource, dest):
             print('CACHE', url , '->', outname, len(r.content),'B')
             with open(fullpath,'wb') as f:
                 f.write(r.content)
-            if extension in ['jpg','png','gif']:
-                #downscaled versions
-                for dim in [320, 1024]:
-                    downfile = fullpath.replace('.'+extension,'-s%d.%s' % (dim, extension))
-                    os.system('convert %s -geometry %dx%d %s'
-                              % (fullpath,dim,dim,downfile))
-        else:
-            print('CACHE OLD', url , '->', outname, r.status_code)
+    if extension in ['jpg','jpeg','png','gif']:
+        #downscaled versions
+        for dim in [1024]:
+            downfile = fullpath.replace('.'+extension,'-s%d.%s' % (dim, extension))
+            os.system('convert %s -geometry %dx%d %s'
+                      % (fullpath,dim,dim,downfile))
+            outname = downfile
     return outname
 
 def formatIcon(icon):
@@ -98,6 +115,9 @@ def pageToHtml(page, urlmap, stylesheet):
     cover = (page['info'].get('cover') or {}).get('external')
     if cover:
         html += '<img src="%s">' % urlmap[cover['url']]
+    #if 'parent' in page:
+    #    html += '<div class="connect-breadcrumb"><a href="%s">&lt;&lt;<span class="connect-parent-title">%s</span></a></div>' \
+    #        % (urlmap[page['parent']['id']], formatText(page['parent']['title']))
     html += ' <h1>%s %s</h1>' % (formatIcon(page['info'].get('icon')), title) \
         + '</header><div class="connect-body">' \
         + blocksToHtml(page['blocks'], urlmap) \
@@ -105,7 +125,7 @@ def pageToHtml(page, urlmap, stylesheet):
     return html
 
 def blocksToHtml(blocks, urlmap):
-    return '\n'.join(blockToHtml(b, urlmap) for b in blocks)
+    return '\n'.join(blockToHtml(b, urlmap) for b in blocks or [])
 
 def blockToHtml(block, urlmap):
     btype = block['type']
@@ -117,7 +137,8 @@ def blockToHtml(block, urlmap):
         'paragraph': lambda b: '<div class="connect-paragraph">%s</div>' % formatText(i['text']),
         'divider': (lambda b: '<hr/>'),
         'image': (lambda b: '<figure><a href="%s" target="_blank"><img src="%s"/></a><figcaption>%s</figcaption></figure>' % (i.get('link') or urlmap[b['id']],urlmap[b['id']],formatText(i['caption']) if i['caption'] else '')),
-        'callout': (lambda b: '<div class="connect-callout"><div class="connect-callout-header"><span>%s</span><span>%s</span></div><div class="connect-callout-body">%s</div></div>' % (i['icon']['emoji'],formatText(i['text']),blocksToHtml(b['children'], urlmap))),
+        'callout': (lambda b: '<div class="connect-callout"><div class="connect-callout-header"><span>%s</span><span>%s</span></div><div class="connect-callout-body">%s</div><div class="connect-callout-footer"></div></div>' % (i['icon']['emoji'],formatText(i['text']),blocksToHtml(b['children'], urlmap))),
+        'link_to_page': lambda b: '<a href="%s">%s</a>' % (i['page_id'],i['page_id']),
         'column': lambda b: '<div class="connect-column %s">%s</div>' % ('column-image' if b['children'][0]['type']=='image' else '', blocksToHtml(b['children'], urlmap)),
         'column_list': lambda b: '<div class="connect-column-list">%s</div>' % blocksToHtml(b['children'], urlmap),
         'bulleted_list_item': lambda b: '<div class="connect-bulleted-item">%s</div>' % formatText(i['text']),
@@ -184,6 +205,7 @@ def summarizePage(page):
             articles[-1].append(block)
             
     def trimSummary(block, counts):
+        print('TRIM?', block['type'])
         if block['type'] == 'image':
             block['image']['link'] = ARTICLE_SLUG_PLACEHOLDER
             if counts['nimg'] <= 0:
@@ -195,7 +217,7 @@ def summarizePage(page):
             wc = len(htmlToText(formatText(block['paragraph']['text'])).split())
             counts['ntxt'] -= wc
         elif block['type'] == 'callout': #keep all
-            if block['children'][0]['type'] == 'table_of_contents': #except toc
+            if block['children'] and block['children'][0]['type'] == 'table_of_contents': #except toc
                 block['type'] = '_drop_'
             else:
                 print('KEEP', counts)
@@ -204,8 +226,8 @@ def summarizePage(page):
         elif block['type'] in ['column_list', 'column']: #hoist children
             block['type'] = '_hoist_'                    
         
-    for ar in articles:
-        counts = {'nimg': IMAGES_PER_ARTICLE, 'ntxt': WORDS_PER_ARTICLE}
+    for i,ar in enumerate(articles):
+        counts = {'nimg': IMAGES_PER_ARTICLE, 'ntxt': WORDS_PER_ARTICLE * (10 if i==0 else 1)}
         atitle = ar[0].get('heading_1',{}).get('text',[{}])[-1].get('plain_text','?')
         print('SUMMARIZE', ptitle, atitle)
         walkBlocks(ar, trimSummary, None, counts)
@@ -245,13 +267,13 @@ if __name__ == '__main__':
     for p in pages:
         
         # output full version
-        html = pageToHtml(p, urlmap, 'connect.css')
+        html = pageToHtml(p, urlmap, 'https://connect.c4claudel.com/connect.css')
         slug = urlmap[p['info']['id']]
         with open(OUTDIR+slug,'wt') as f:
-            f.write(html)
+            f.write(inline_css(html))
         if p['info']['id'] == rootid:
             with open(OUTDIR+'index.html','wt') as f:
-                f.write(html)
+                f.write()
 
         # summary for emailing
         pageurl = SITE_ROOT + slug
@@ -260,25 +282,15 @@ if __name__ == '__main__':
         articles = summarizePage(p)
         html = '<div class="connect-mail"><style>%s</style>' % open('resources/connect.css','rt').read()
         for i,ar in enumerate(articles):
-            more = '<a href="%s">Continue...</a>' % ARTICLE_SLUG_PLACEHOLDER if ar.pop(0) else ''
+            more = '<a href="%s">lire la suite...</a>' % ARTICLE_SLUG_PLACEHOLDER if ar.pop(0) else ''
             html += '<div class="connect-%s">%s%s</div>' % ('lead' if i==0 else 'article', blocksToHtml(ar, fullurlmap), more)
             dest = textToSlug(formatText(ar[0].get('heading_1',{}).get('text',[])))
-            html = html.replace(ARTICLE_SLUG_PLACEHOLDER, pageurl + '#' + dest)           
+            html = html.replace(ARTICLE_SLUG_PLACEHOLDER, pageurl + '#' + dest)
+            html = re.sub(r'\\.(jpg|jpeg)"', r'-s320x\1"', html)
+            html = html.replace('-s320x','-s320.') #avoid multi suffixing
         html += '</div>'
         mailablemsg = inline_css(html)
 
         with open(OUTDIR+slug+'.summary.html','wt') as f:
             f.write(mailablemsg)
     
-    #page = nget.pageInfo('9ca6b166f315435786896f072471c888')
-    #pprint(page)
-    #print(len(page['blocks']))
-    #print(pageToHtml(page))
-    #walkBlocks(page['blocks'],
-    #           lambda b: print('IMAGE', b['image']['url']),
-    #           ['image'])
-    #walkBlocks(page['blocks'],
-    #           lambda b: print('CHILD', b['child_page']),
-    #           ['child_page'])
-    #
-    #print(nget.crawl('9ca6b166f315435786896f072471c888'))
