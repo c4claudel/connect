@@ -73,7 +73,7 @@ def basename(url):
     
 def cacheResource(blockid, resource, dest):
     url = resource[resource['type']]['url']
-    outname = basename(url)
+    outname = blockid+'-'+basename(url)
     extension = outname.split('.')[-1][:4].lower()
     fullpath = dest+outname
     if os.path.exists(fullpath):
@@ -185,7 +185,8 @@ def preprocesAndCachePage(p):
     #TODO cache images and other files
     cover = (p['info'].get('cover') or {}).get('external')
     print('COVER:', cover)
-    if cover: urlmap[cover['url']] = cacheResource(p['info']['id']+'-cover', p['info'].get('cover'), OUTDIR)
+    if cover:
+        urlmap[cover['url']] = cacheResource(p['info']['id']+'-cover', p['info'].get('cover'), OUTDIR)
     walkBlocks(p['blocks'],
                lambda b: urlmap.update({b['id']: cacheResource(b['id'], b[b['type']], OUTDIR)}),
                ['image','file'])
