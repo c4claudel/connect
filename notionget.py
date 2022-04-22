@@ -130,18 +130,19 @@ def blocksToHtml(blocks, urlmap):
 def blockToHtml(block, urlmap):
     btype = block['type']
     i = block.get(btype) or {}
+    text = i.get('text')
     OPS = {
         'child_page': lambda b: '<div class="connect-childpage"><a href="%s">%s%s</a></div>' % (urlmap[b['id']],formatIcon(i.get('icon')),i['title']),
-        'heading_1': lambda b: '<h2><a name="%s"></a>%s</h2>' % (textToSlug(formatText(i['text'])),formatText(i['text'])) if not i.get('link') \
-                               else '<h2><a href="%s">%s</a></h2>'  % (i['link'],formatText(i['text'])),
-        'paragraph': lambda b: '<div class="connect-paragraph">%s</div>' % formatText(i['text']),
+        'heading_1': lambda b: '<h2><a name="%s"></a>%s</h2>' % (textToSlug(formatText(text)),formatText(text)) if not i.get('link') \
+                               else '<h2><a href="%s">%s</a></h2>'  % (i['link'],formatText(text)),
+        'paragraph': lambda b: '<div class="connect-paragraph">%s</div>' % formatText(text),
         'divider': (lambda b: '<hr/>'),
         'image': (lambda b: '<figure><a href="%s" target="_blank"><img src="%s"/></a><figcaption>%s</figcaption></figure>' % (i.get('link') or urlmap[b['id']],urlmap[b['id']],formatText(i['caption']) if i['caption'] else '')),
-        'callout': (lambda b: '<div class="connect-callout"><div class="connect-callout-header"><span>%s</span><span>%s</span></div><div class="connect-callout-body">%s</div><div class="connect-callout-footer"></div></div>' % (i['icon']['emoji'],formatText(i['text']),blocksToHtml(b['children'], urlmap))),
+        'callout': (lambda b: '<div class="connect-callout"><div class="connect-callout-header"><span>%s</span><span>%s</span></div><div class="connect-callout-body">%s</div><div class="connect-callout-footer"></div></div>' % (i['icon']['emoji'],formatText(text),blocksToHtml(b['children'], urlmap))),
         'link_to_page': lambda b: '<a href="%s">%s</a>' % (i['page_id'],i['page_id']),
         'column': lambda b: '<div class="connect-column %s">%s</div>' % ('column-image' if b['children'][0]['type']=='image' else '', blocksToHtml(b['children'], urlmap)),
         'column_list': lambda b: '<div class="connect-column-list">%s</div>' % blocksToHtml(b['children'], urlmap),
-        'bulleted_list_item': lambda b: '<div class="connect-bulleted-item">%s</div>' % formatText(i['text']),
+        'bulleted_list_item': lambda b: '<div class="connect-bulleted-item">%s</div>' % formatText(text),
         'table_of_contents': lambda b: '<div class="connect-toc">%s</div>' % \
                           '<br/>'.join('<a href="#%s">%s</a>' % (textToSlug(h),htmlToText(h)) for n,h in i['headings']),
         'embed': lambda b: '<iframe class="connect-embed" src="%s"></iframe>' % i['url'],
