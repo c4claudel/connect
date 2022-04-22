@@ -12,9 +12,11 @@ from inlinestyler.utils import inline_css
 NOTION_SECRET = os.environ.get('NOTION_SECRET')
 OUTDIR = 'docs/'
 IMAGES_PER_ARTICLE = 1
-WORDS_PER_ARTICLE = 50
+WORDS_PER_ARTICLE = 75
+WORDS_PER_ARTICLE_EXCESS = 25
 SITE_ROOT = 'https://connect.c4claudel.com/'
 ARTICLE_SLUG_PLACEHOLDER = '--ARTICLE--SLUG--'
+SUMMARY_READMORE_PLACEHOLDER = '--READ-MORE--'
 
 class NGet():
     def __init__(self):
@@ -211,7 +213,23 @@ def summarizePage(page):
             articles.append([block])
         else:
             articles[-1].append(block)
-            
+
+    def wordCount(block):
+        return len(htmlToText(formatBlockText(block)).split())
+        
+    def trimBlockText(block, limit):
+        content = block.get(block['type'],{})
+        text = content.get('rich_text') or content.get('text')
+        while wordCount(block) > limit:
+            excess = wordCount(block) - limit
+            tail = text[-1]
+            words = tail['plain_text'].split()
+            print('TRIMTEXT', excess, 'of', len(words),'/',wordCount(block))
+            if len(words) <= excess:
+                text.pop()
+            else:
+                tail['plain_text'] = ' '.join(words[:-excess-1]) + '... ' + SUMMARY_READMORE_PLACEHOLDER
+    
     def trimSummary(block, counts):
         print('TRIM?', block['type'])
         if block['type'] == 'image':
@@ -220,10 +238,21 @@ def summarizePage(page):
                 block['type'] = '_drop_'
             counts['nimg'] -= 1
         elif block['type'] == 'paragraph':
+            wc = wordCount(block)
             if counts['ntxt'] <= 0:
+                print('TRIM DROP', block['type'])
                 block['type'] = '_drop_'
-            wc = len(htmlToText(formatBlockText(block)).split())
-            counts['ntxt'] -= wc
+                counts['ntxt'] -= wc #extra paras are dropped
+            elif counts['ntxt'] >= wc:
+                print('TRIM KEEP', block['type'])
+                counts['ntxt'] -= wc
+            elif wc - counts['ntxt'] < WORDS_PER_ARTICLE_EXCESS:
+                print('TRIM CONC', block['type'])
+                counts['ntxt'] = 0 #concede the whole paragraph
+            else:
+                print('TRIM HALF', block['type'])
+                trimBlockText(block, counts['ntxt']) 
+                counts['ntxt'] -= wc #trim inside paragraph                                
         elif block['type'] == 'callout': #keep all
             if block['children'] and block['children'][0]['type'] == 'table_of_contents': #except toc
                 block['type'] = '_drop_'
@@ -291,12 +320,19 @@ if __name__ == '__main__':
         articles = summarizePage(p)
         html = '<div class="connect-mail"><style>%s</style>' % open('resources/connect.css','rt').read()
         for i,ar in enumerate(articles):
-            more = '<a href="%s">lire la suite...</a>' % ARTICLE_SLUG_PLACEHOLDER if ar.pop(0) else ''
-            html += '<div class="connect-%s">%s%s</div>' % ('lead' if i==0 else 'article', blocksToHtml(ar, fullurlmap), more)
+            href = ARTICLE_SLUG_PLACEHOLDER if ar.pop(0) else ''
+            article = blocksToHtml(ar, fullurlmap)
+            if SUMMARY_READMORE_PLACEHOLDER in article:
+                more= '&nbsp;<a href="%s">lire la suite...</a>' % href
+                article = article.replace(SUMMARY_READMORE_PLACEHOLDER, more)
+            elif href:
+                more= '<a href="%s">Lire la suite...</a>' % href
+                article = article + more
             dest = textToSlug(formatBlockText(ar[0]))
-            html = html.replace(ARTICLE_SLUG_PLACEHOLDER, pageurl + '#' + dest)
-            html = re.sub(r'\\.(jpg|jpeg)"', r'-s320x\1"', html)
-            html = html.replace('-s320x','-s320.') #avoid multi suffixing
+            article = article.replace(ARTICLE_SLUG_PLACEHOLDER, pageurl + '#' + dest)
+            article = re.sub(r'\\.(jpg|jpeg)"', r'-s320x\1"', article)
+            article = article.replace('-s320x','-s320.') #avoid multi suffixing
+            html += '<div class="connect-%s">%s</div>' % ('lead' if i==0 else 'article', article)
         html += '</div>'
         mailablemsg = inline_css(html)
 
