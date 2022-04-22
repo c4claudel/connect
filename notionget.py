@@ -102,7 +102,7 @@ def formatText(snippets):
         styles = ' '.join(['snippet-'+k for k,v in snippet['annotations'].items() if v])
         if styles: txt = '<span class="%s">%s</span>' % (styles, txt)
         return txt
-    return ''.join(_span(t) for t in snippets)
+    return ''.join(_span(t) for t in snippets or [])
 
 def pageToHtml(page, urlmap, stylesheet):
     title = formatText(page['info']['properties']['title']['title'])
@@ -181,9 +181,10 @@ def preprocesAndCachePage(p):
                lambda b: urlmap.update({b['id']: cacheResource(b['id'], b[b['type']], OUTDIR)}),
                ['image','file'])
 
+    #build ToC
     headings = []
     walkBlocks(p['blocks'],
-               lambda b,h: h.append((1,formatText(b['heading_1']['text']))),
+               lambda b,h: h.append((1,formatText(b['heading_1'].get('text')))),
                ['heading_1'], headings)
     print('HEADERS',headings)
 
