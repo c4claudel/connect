@@ -103,7 +103,9 @@ def formatText(snippets):
         txt = snippet['plain_text'].replace('\n','<br/>')
         snippet['annotations']['color'] = False #TODO color
         styles = ' '.join(['snippet-'+k for k,v in snippet['annotations'].items() if v])
-        if styles: txt = '<span class="%s">%s</span>' % (styles, txt)
+        href = (snippet.get('text',{}).get('link') or {}).get('url')
+        if href: txt = '<a href="%s" target="_blank" class="%s">%s</a>' % (href, styles, txt)
+        elif styles: txt = '<span class="%s">%s</span>' % (styles, txt)
         return txt
     return ''.join(_span(t) for t in snippets or [])
 
