@@ -105,6 +105,11 @@ def formatText(snippets):
         return txt
     return ''.join(_span(t) for t in snippets or [])
 
+def formatBlockText(block):
+    #api is confused between rich_text and text
+    content = block.get(block.get('type','xx'),{})
+    return formatText(content.get('rich_text') or content.get('text'))
+
 def pageToHtml(page, urlmap, stylesheet):
     title = formatText(page['info']['properties']['title']['title'])
     html = '<html><head>' \
@@ -131,19 +136,19 @@ def blocksToHtml(blocks, urlmap):
 def blockToHtml(block, urlmap):
     btype = block['type']
     i = block.get(btype) or {}
-    text = i.get('text')
+    ftext = formatBlockText(block)
     OPS = {
         'child_page': lambda b: '<div class="connect-childpage"><a href="%s">%s%s</a></div>' % (urlmap[b['id']],formatIcon(i.get('icon')),i['title']),
-        'heading_1': lambda b: '<h2><a name="%s"></a>%s</h2>' % (textToSlug(formatText(text)),formatText(text)) if not i.get('link') \
-                               else '<h2><a href="%s">%s</a></h2>'  % (i['link'],formatText(text)),
-        'paragraph': lambda b: '<div class="connect-paragraph">%s</div>' % formatText(text),
+        'heading_1': lambda b: '<h2><a name="%s"></a>%s</h2>' % (textToSlug(ftext),ftext) if not i.get('link') \
+                               else '<h2><a href="%s">%s</a></h2>'  % (i['link'],ftext),
+        'paragraph': lambda b: '<div class="connect-paragraph">%s</div>' % ftext,
         'divider': (lambda b: '<hr/>'),
         'image': (lambda b: '<figure><a href="%s" target="_blank"><img src="%s"/></a><figcaption>%s</figcaption></figure>' % (i.get('link') or urlmap[b['id']],urlmap[b['id']],formatText(i['caption']) if i['caption'] else '')),
-        'callout': (lambda b: '<div class="connect-callout"><div class="connect-callout-header"><span>%s</span><span>%s</span></div><div class="connect-callout-body">%s</div><div class="connect-callout-footer"></div></div>' % (i['icon']['emoji'],formatText(text),blocksToHtml(b['children'], urlmap))),
+        'callout': (lambda b: '<div class="connect-callout"><div class="connect-callout-header"><span>%s</span><span>%s</span></div><div class="connect-callout-body">%s</div><div class="connect-callout-footer"></div></div>' % (i['icon']['emoji'],ftext,blocksToHtml(b['children'], urlmap))),
         'link_to_page': lambda b: '<a href="%s">%s</a>' % (i['page_id'],i['page_id']),
         'column': lambda b: '<div class="connect-column %s">%s</div>' % ('column-image' if b['children'][0]['type']=='image' else '', blocksToHtml(b['children'], urlmap)),
         'column_list': lambda b: '<div class="connect-column-list">%s</div>' % blocksToHtml(b['children'], urlmap),
-        'bulleted_list_item': lambda b: '<div class="connect-bulleted-item">%s</div>' % formatText(text),
+        'bulleted_list_item': lambda b: '<div class="connect-bulleted-item">%s</div>' % ftext,
         'table_of_contents': lambda b: '<div class="connect-toc">%s</div>' % \
                           '<br/>'.join('<a href="#%s">%s</a>' % (textToSlug(h),htmlToText(h)) for n,h in i['headings']),
         'embed': lambda b: '<iframe class="connect-embed" src="%s"></iframe>' % i['url'],
@@ -186,7 +191,7 @@ def preprocesAndCachePage(p):
     #build ToC
     headings = []
     walkBlocks(p['blocks'],
-               lambda b,h: h.append((1,formatText(b['heading_1'].get('text')))),
+               lambda b,h: h.append((1,formatBlockText(b))),
                ['heading_1'], headings)
     print('HEADERS',headings)
 
@@ -217,7 +222,7 @@ def summarizePage(page):
         elif block['type'] == 'paragraph':
             if counts['ntxt'] <= 0:
                 block['type'] = '_drop_'
-            wc = len(htmlToText(formatText(block['paragraph'].get('text'))).split())
+            wc = len(htmlToText(formatBlockText(block)).split())
             counts['ntxt'] -= wc
         elif block['type'] == 'callout': #keep all
             if block['children'] and block['children'][0]['type'] == 'table_of_contents': #except toc
@@ -231,7 +236,7 @@ def summarizePage(page):
         
     for i,ar in enumerate(articles):
         counts = {'nimg': IMAGES_PER_ARTICLE, 'ntxt': WORDS_PER_ARTICLE * (10 if i==0 else 1)}
-        atitle = ar[0].get('heading_1',{}).get('text',[{}])[-1].get('plain_text','?')
+        atitle = htmlToText(formatBlockText(ar[0]))
         print('SUMMARIZE', ptitle, atitle)
         walkBlocks(ar, trimSummary, None, counts)
         # move images to the front
@@ -288,7 +293,7 @@ if __name__ == '__main__':
         for i,ar in enumerate(articles):
             more = '<a href="%s">lire la suite...</a>' % ARTICLE_SLUG_PLACEHOLDER if ar.pop(0) else ''
             html += '<div class="connect-%s">%s%s</div>' % ('lead' if i==0 else 'article', blocksToHtml(ar, fullurlmap), more)
-            dest = textToSlug(formatText(ar[0].get('heading_1',{}).get('text',[])))
+            dest = textToSlug(formatBlockText(ar[0]))
             html = html.replace(ARTICLE_SLUG_PLACEHOLDER, pageurl + '#' + dest)
             html = re.sub(r'\\.(jpg|jpeg)"', r'-s320x\1"', html)
             html = html.replace('-s320x','-s320.') #avoid multi suffixing
