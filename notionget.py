@@ -216,7 +216,7 @@ def summarizePage(page):
         elif block['type'] == 'paragraph':
             if counts['ntxt'] <= 0:
                 block['type'] = '_drop_'
-            wc = len(htmlToText(formatText(block['paragraph']['text'])).split())
+            wc = len(htmlToText(formatText(block['paragraph'].get('text'))).split())
             counts['ntxt'] -= wc
         elif block['type'] == 'callout': #keep all
             if block['children'] and block['children'][0]['type'] == 'table_of_contents': #except toc
