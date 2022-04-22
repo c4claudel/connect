@@ -85,9 +85,10 @@ def cacheResource(blockid, resource, dest):
     if extension in ['jpg','jpeg','png','gif']:
         #downscaled versions
         for dim in [1024]:
-            downfile = fullpath.replace('.'+extension,'-s%d.%s' % (dim, extension))
+            downfile = outname.replace('.'+extension,'-s%d.%s' % (dim, extension))
+            downpath = dest + downfile
             os.system('convert %s -geometry %dx%d %s'
-                      % (fullpath,dim,dim,downfile))
+                      % (fullpath,dim,dim,downpath))
             outname = downfile
     return outname
 
@@ -257,6 +258,7 @@ if __name__ == '__main__':
     if opts.fetch:
         pages = nget.crawl(rootid)
         with open(cachefile,'wt') as f: f.write(json.dumps(pages))
+        pprint(pages)
     else:
         with open(cachefile,'rt') as f: pages = json.loads(f.read())
 
@@ -272,7 +274,7 @@ if __name__ == '__main__':
         html = pageToHtml(p, urlmap, 'https://connect.c4claudel.com/connect.css')
         slug = urlmap[p['info']['id']]
         with open(OUTDIR+slug,'wt') as f:
-            f.write(inline_css(html))
+            f.write(html)
         if p['info']['id'] == rootid:
             with open(OUTDIR+'index.html','wt') as f:
                 f.write()
