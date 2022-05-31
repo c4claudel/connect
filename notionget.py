@@ -145,6 +145,8 @@ def blockToHtml(block, urlmap):
         'child_page': lambda b: '<div class="connect-childpage"><a href="%s">%s%s</a></div>' % (urlmap[b['id']],formatIcon(i.get('icon')),i['title']),
         'heading_1': lambda b: '<h2><a name="%s"></a>%s</h2>' % (textToSlug(ftext),ftext) if not i.get('link') \
                                else '<h2><a href="%s">%s</a></h2>'  % (i['link'],ftext),
+        'heading_2': lambda b: '<h3><a name="%s"></a>%s</h3>' % (textToSlug(ftext),ftext) if not i.get('link') \
+                               else '<h3><a href="%s">%s</a></h3>'  % (i['link'],ftext),
         'paragraph': lambda b: '<div class="connect-paragraph">%s</div>' % ftext,
         'divider': (lambda b: '<hr/>'),
         'image': (lambda b: '<figure><a href="%s" target="_blank"><img src="%s"/></a><figcaption>%s</figcaption></figure>' % (i.get('link') or urlmap[b['id']],urlmap[b['id']],formatText(i['caption']) if i['caption'] else '')),
