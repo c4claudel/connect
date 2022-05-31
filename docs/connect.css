@@ -141,6 +141,9 @@ iframe.connect-embed {
     max-width: 320px;
     max-height: 240px;
 }
+.connect-mail .connect-article figcaption {
+    max-width: 320px;
+}
 .connect-mail .connect-article:nth-child(odd) figure {
     float: left;
     margin-right: 1em;
