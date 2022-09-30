@@ -242,7 +242,7 @@ def summarizePage(page):
             if counts['nimg'] <= 0:
                 block['type'] = '_drop_'
             counts['nimg'] -= 1
-        elif block['type'] == 'paragraph':
+        elif block['type'] in ['paragraph', 'bulleted_list_item', 'numbered_list_item']:
             wc = wordCount(block)
             if counts['ntxt'] <= 0:
                 print('TRIM DROP', block['type'])
