@@ -261,6 +261,7 @@ def summarizePage(page):
         elif block['type'] == 'callout': #keep all
             if block['children'] and block['children'][0]['type'] == 'table_of_contents': #except toc
                 block['type'] = '_drop_'
+                block['children'][0]['type'] = '_drop_'
             else:
                 print('KEEP', counts)
                 counts['ntxt'] += 10000
