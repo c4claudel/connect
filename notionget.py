@@ -274,7 +274,7 @@ def summarizePage(page):
         print('SUMMARIZE', ptitle, atitle)
         walkBlocks(ar, trimSummary, None, counts)
         # move images to the front
-        SUMSORT = { 'heading_1': 1, 'image': 2, '_hoist_': 3 }
+        SUMSORT = { 'heading_1': 1, 'image': 2 } #?? , '_hoist_': 3 }
         ar.sort(key=lambda b: SUMSORT.get(b['type'],100))
         # flag if trimmed
         ar.insert(0, counts['nimg'] < 0 or counts['ntxt'] < 0)
