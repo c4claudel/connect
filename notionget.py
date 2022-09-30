@@ -267,12 +267,24 @@ def summarizePage(page):
                 counts['nimg'] += 10
         elif block['type'] in ['column_list', 'column']: #hoist children
             block['type'] = '_hoist_'                    
+
+    def flattenBlocks(block, flattened):
+        if block['type'] != '_hoist_':
+            flattened.append(block)
         
     for i,ar in enumerate(articles):
-        counts = {'nimg': IMAGES_PER_ARTICLE, 'ntxt': WORDS_PER_ARTICLE * (10 if i==0 else 1)}
+        counts = {'nimg': IMAGES_PER_ARTICLE, 'ntxt': WORDS_PER_ARTICLE * (10 if i==0 else 1)}        
         atitle = htmlToText(formatBlockText(ar[0]))
         print('SUMMARIZE', ptitle, atitle)
+        
         walkBlocks(ar, trimSummary, None, counts)
+
+        # hoist child blocks
+        flattened = []
+        walkBlocks(ar, flattenBlocks, None, flattened)
+        ar.clear()
+        ar.extend(flattened)
+        
         # move images to the front
         SUMSORT = { 'heading_1': 1, 'image': 2 } #?? , '_hoist_': 3 }
         ar.sort(key=lambda b: SUMSORT.get(b['type'],100))
