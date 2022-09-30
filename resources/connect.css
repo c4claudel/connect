@@ -63,7 +63,8 @@ header h1 {
     width: 90%;
     padding-left: 5%;
 }
-.connect-paragraph {
+.connect-paragraph,
+.connect-bulleted-item {
     font-size: 90%;
     line-height: 1.5;
 }
