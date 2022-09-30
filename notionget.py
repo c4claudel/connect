@@ -89,8 +89,9 @@ def cacheResource(blockid, resource, dest):
         for dim in [1024]:
             downfile = outname.replace('.'+extension,'-s%d.%s' % (dim, extension))
             downpath = dest + downfile
-            os.system('convert %s -geometry %dx%d %s'
-                      % (fullpath,dim,dim,downpath))
+            if not os.path.exists(fullpath):
+                os.system('convert %s -geometry %dx%d %s'
+                          % (fullpath,dim,dim,downpath))
             outname = downfile
     return outname
 
@@ -116,7 +117,7 @@ def formatBlockText(block):
 
 def pageToHtml(page, urlmap, stylesheet):
     title = formatText(page['info']['properties']['title']['title'])
-    html = '<html><head>' \
+    html = '<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0">' \
         + '<title>%s</title>' % htmlToText(title) \
         + '<link rel="stylesheet" href="%s">'  % stylesheet \
         + '</head><body>' \
@@ -131,7 +132,7 @@ def pageToHtml(page, urlmap, stylesheet):
     html += ' <h1>%s %s</h1>' % (formatIcon(page['info'].get('icon')), title) \
         + '</header><div class="connect-body">' \
         + blocksToHtml(page['blocks'], urlmap) \
-        + '</div></div></body></html>'
+        + '</div></header></body></html>'
     return html
 
 def blocksToHtml(blocks, urlmap):
@@ -149,7 +150,7 @@ def blockToHtml(block, urlmap):
                                else '<h3><a href="%s">%s</a></h3>'  % (i['link'],ftext),
         'paragraph': lambda b: '<div class="connect-paragraph">%s</div>' % ftext,
         'divider': (lambda b: '<hr/>'),
-        'image': (lambda b: '<figure><a href="%s" target="_blank"><img src="%s"/></a><figcaption>%s</figcaption></figure>' % (i.get('link') or urlmap[b['id']],urlmap[b['id']],formatText(i['caption']) if i['caption'] else '')),
+        'image': (lambda b: '<div class="connect-figure"><a href="%s" target="_blank"><img src="%s"/></a><div class="connect-caption">%s</div></div>' % (i.get('link') or urlmap[b['id']],urlmap[b['id']],formatText(i['caption']) if i['caption'] else '')),
         'callout': (lambda b: '<div class="connect-callout"><div class="connect-callout-header"><span>%s</span><span>%s</span></div><div class="connect-callout-body">%s</div><div class="connect-callout-footer"></div></div>' % (i['icon']['emoji'],ftext,blocksToHtml(b['children'], urlmap))),
         'link_to_page': lambda b: '<a href="%s">%s</a>' % (i['page_id'],i['page_id']),
         'column': lambda b: '<div class="connect-column %s">%s</div>' % ('column-image' if b['children'][0]['type']=='image' else '', blocksToHtml(b['children'], urlmap)),
@@ -323,7 +324,7 @@ if __name__ == '__main__':
     for p in pages:
         
         # output full version
-        html = pageToHtml(p, urlmap, 'https://connect.c4claudel.com/connect.css')
+        html = pageToHtml(p, urlmap, 'connect.css')
         slug = urlmap[p['info']['id']]
         with open(OUTDIR+slug,'wt') as f:
             f.write(html)
@@ -353,6 +354,7 @@ if __name__ == '__main__':
             html += '<div class="connect-%s">%s</div>' % ('lead' if i==0 else 'article', article)
         html += '</div>'
         mailablemsg = inline_css(html)
+        mailablemsg = mailablemsg.replace('<html>','<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>')
 
         with open(OUTDIR+slug+'.summary.html','wt') as f:
             f.write(mailablemsg)

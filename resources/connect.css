@@ -9,16 +9,6 @@ body {
 a {
     color: green;
 }
-figure {
-    margin: 1ex;;
-}
-figcaption {
-    width: 80%;
-    text-align: center;
-    font-size: 90%;
-    font-style: italic;
-    margin: 1ex auto;
-}
 .snippet-bold { font-weight: 600; }
 .snippet-italic { font-style: italic; }
 
@@ -49,20 +39,30 @@ header h1 {
 }
 
 .connect-body {
-    max-width: 900px;
+    width: 900px;
+    max-width: 95vw;
     margin: auto;
-    padding-left: 96px;
-    padding-right: 96px;
+    padding-left: 2vw;
+    padding-right: 2vw;
 }
-
 .connect-body h2 {
     margin-top: 1em !important;
     border-bottom: 4px solid #8b8;
 }
 
-.connect-body img {    
+.connect-body img {
     width: 90%;
     padding-left: 5%;
+}
+.connect-figure {
+    margin: 1ex;;
+}
+.connect-caption {
+    width: 80%;
+    text-align: center;
+    font-size: 90%;
+    font-style: italic;
+    margin: 1ex auto;
 }
 .connect-paragraph,
 .connect-bulleted-item {
@@ -135,24 +135,25 @@ iframe.connect-embed {
     text-decoration: none;
     color: initial;
 }
-.connect-mail .connect-article figure {
+.connect-mail .connect-article .connect-figure {
    padding: 1ex;
    border: 1px solid gray;
  }
-.connect-mail .connect-article img {    
+.connect-mail .connect-article img {
+    width: 40vw;
     max-width: 320px;
-    max-height: 240px;
+    xmax-height: 240px;
 }
-.connect-mail .connect-article figcaption {
+.connect-mail .connect-article .connect-caption {
     max-width: 320px;
 }
-.connect-mail .connect-article:nth-child(odd) figure {
+.connect-mail .connect-article:nth-child(odd) .connect-figure {
     float: left;
-    margin-right: 1em;
+    xmargin-right: 1em;
 }
-.connect-mail .connect-article:nth-child(even) figure {
+.connect-mail .connect-article:nth-child(even) .connect-figure {
     float: right;
-    margin-left: 1em;
+    xmargin-left: 1em;
 }
 
 .connect-mail .connect-callout {
