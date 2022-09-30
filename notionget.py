@@ -89,7 +89,7 @@ def cacheResource(blockid, resource, dest):
         for dim in [1024]:
             downfile = outname.replace('.'+extension,'-s%d.%s' % (dim, extension))
             downpath = dest + downfile
-            if not os.path.exists(fullpath):
+            if not os.path.exists(downpath):
                 os.system('convert %s -geometry %dx%d %s'
                           % (fullpath,dim,dim,downpath))
             outname = downfile
