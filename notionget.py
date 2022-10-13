@@ -328,7 +328,7 @@ if __name__ == '__main__':
         slug = urlmap[p['info']['id']]
         with open(OUTDIR+slug,'wt') as f:
             f.write(html)
-        if p['info']['id'] == rootid:
+        if p['info']['id'].replace('-','') == rootid:
             with open(OUTDIR+'index.html','wt') as f:
                 f.write()
 
