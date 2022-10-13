@@ -330,7 +330,7 @@ if __name__ == '__main__':
             f.write(html)
         if p['info']['id'].replace('-','') == rootid:
             with open(OUTDIR+'index.html','wt') as f:
-                f.write()
+                f.write(html)
 
         # summary for emailing
         pageurl = SITE_ROOT + slug
