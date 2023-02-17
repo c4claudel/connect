@@ -156,6 +156,7 @@ def blockToHtml(block, urlmap):
         'column': lambda b: '<div class="connect-column %s">%s</div>' % ('column-image' if b['children'][0]['type']=='image' else '', blocksToHtml(b['children'], urlmap)),
         'column_list': lambda b: '<div class="connect-column-list">%s</div>' % blocksToHtml(b['children'], urlmap),
         'bulleted_list_item': lambda b: '<div class="connect-bulleted-item">%s</div>' % ftext,
+        'numbered_list_item': lambda b: '<div class="connect-numbered-item">%s</div>' % ftext,
         'table_of_contents': lambda b: '<div class="connect-toc">%s</div>' % \
                           '<br/>'.join('<a href="#%s">%s</a>' % (textToSlug(h),htmlToText(h)) for n,h in i['headings']),
         'embed': lambda b: '<iframe class="connect-embed" src="%s"></iframe>' % i['url'],
