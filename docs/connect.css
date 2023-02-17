@@ -72,9 +72,26 @@ header h1 {
     margin: 1ex auto;
 }
 .connect-paragraph,
-.connect-bulleted-item {
+.connect-bulleted-item,
+.connect-numbered-item {
     font-size: 90%;
     line-height: 1.5;
+}
+.connect-paragraph > .connect-numbered-item:first-child {
+    counter-reset: cnli;
+}
+.connect-numbered-item {
+    counter-increment: cnli;
+    padding-left: 1em;
+    text-indent: -1em;
+    margin-top: 1ex;
+}
+.connect-numbered-item::before {
+    position: relative;
+    width: 0;
+    content: counter(cnli) ". ";
+    color: green;
+    font-weight: bold;
 }
 .connect-callout {
     border: 1px solid green;
