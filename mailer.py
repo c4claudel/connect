@@ -26,9 +26,9 @@ def djb2(text):
     return h
 
 class Mailer():
-    def __init__(self, fromaddr, commit=False):
+    def __init__(self, fromaddr, commit=False, reauth=False):
         creds = None
-        if os.path.exists(TOKEN_FILE):
+        if not reauth and os.path.exists(TOKEN_FILE):
             creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
 
         if not creds or not creds.valid:
@@ -66,6 +66,11 @@ class Mailer():
         if self._commit:
             result = self._service.users().drafts().send(userId="me", body=draft).execute()
             print(f"sent message result={result}")
+
+            ##ERROR occasionally
+            #raise HttpError(resp, content, uri=self.uri)
+            #googleapiclient.errors.HttpError: <HttpError 400 when requesting https://gmail.googleapis.com/gmail/v1/users/me/drafts/send?alt=json returned "Precondition check failed.".
+            #Details: "[{'message': 'Precondition check failed.', 'domain': 'global', 'reason': 'failedPrecondition'}]">
         else:
             print("not sending without --commit")
 
@@ -80,7 +85,7 @@ class Mailer():
             count = min(batchSize, len(bcc))
             recp['bcc'] = bcc[:count]
             bcc = bcc[count:]
-            print('sending to', recp)
+            print('sending to', len(recp['bcc']))
             self.send(subject, soup, **recp)
             
 class Tracker():
@@ -119,16 +124,20 @@ if __name__ == '__main__':
     Options.add_argument('--bcc', type=str)
     Options.add_argument('--batch', type=int, default=0)
     Options.add_argument('--commit', action='store_true', default=False)
+    Options.add_argument('--reauth', action='store_true', default=False)
     opts = Options.parse_args()
 
 
-    mailer = Mailer(opts.fr, commit=opts.commit)
+    mailer = Mailer(opts.fr, commit=opts.commit, reauth=opts.reauth)
 
     html = open(opts.html,'rt').read()
     soup = Soup(html)
 
+    if '[email&#160;protected]' in html:
+        raise 'message contains redacted email address!!'    
+    
     if opts.footer:
-        footer = open(opts.footer,'rt').read()
+        footer = open(opts.footer,'rt',encoding="ISO-8859-1").read()
         for foot in Soup(footer).body.children:
             soup.html.body.append(foot)
 
@@ -138,6 +147,8 @@ if __name__ == '__main__':
         if src and os.path.exists(src):
             addrs = open(src,'rt',encoding='ISO-8859-1').read().split('\n')
             headers[addrmode] = [a for a in addrs if '@' in a]
+            print(repr(headers[addrmode]))
+            print('sending', addrmode, 'to', len(headers[addrmode]), 'recipients')
         elif src:
             headers[addrmode] = src.split(',')
             
