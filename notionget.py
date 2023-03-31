@@ -1,6 +1,8 @@
 from argparse import ArgumentParser
 from pprint import pprint
+from dateutil.parser import isoparse
 import urllib.parse
+import datetime
 import requests
 import json
 import re
@@ -41,7 +43,7 @@ class NGet():
             if some and 'results' in some:
                 yield from some['results']
                 more = some['has_more']
-    def crawl(self, rootid):
+    def crawl(self, rootid, dateLimit):
         page = self.fetchPage(rootid)
         pages = [page]
         crawled = []
@@ -50,12 +52,13 @@ class NGet():
             done = True
             subpages = []
             def crawlSub(blk, parent):
-                if not blk in subpages:
-                    parentTitle = parent['info']['properties']['title']['title']
-                    print('CRAWL Page ',parentTitle[0]['plain_text'],'->',blk['child_page']['title'])
-                    page = self.fetchPage(blk['id'])
-                    page['parent'] = { 'id': parent['info']['id'], 'title': parentTitle }
-                    subpages.append(page)
+                if blk in subpages: return
+                if isoparse(blk['last_edited_time']).date() < dateLimit: return
+                parentTitle = parent['info']['properties']['title']['title']
+                print('CRAWL Page ',parentTitle[0]['plain_text'],'->',blk['child_page']['title'])
+                page = self.fetchPage(blk['id'])
+                page['parent'] = { 'id': parent['info']['id'], 'title': parentTitle }
+                subpages.append(page)
             for page in pages:
                 if not page in crawled:
                     crawled.append(page)
@@ -300,6 +303,7 @@ def summarizePage(page):
 if __name__ == '__main__':
     Options = ArgumentParser(description='Newsletter Publisher')
     Options.add_argument('--fetch', action='store_true')
+    Options.add_argument('--since', type=int)
     Options.add_argument('files', type=str, nargs='+')
     opts = Options.parse_args()
 
@@ -309,13 +313,40 @@ if __name__ == '__main__':
     cachefile = rootid + '-cache.json'
     print('ROOT is:', rootid)
 
+    try:
+        with open(cachefile,'rt') as f:
+            pages = json.loads(f.read())
+    except:
+        pages = []
+    
+    dateLimit = datetime.date.today() - datetime.timedelta(opts.since or 9999)
+    print("DATE LIMIT:", dateLimit)
+    
+    for p in pages:
+        title = p['info']['properties']['title']['title'][0]['text']
+        date = isoparse(p['info']['last_edited_time']).date()
+        if date < dateLimit:
+            print("SKIP:", title, date)
+        else:
+            print("DROP:", title, date)
+    
     if opts.fetch:
-        pages = nget.crawl(rootid)
+        newpages = nget.crawl(rootid, dateLimit)
+        if opts.since:
+            print("OLD_PAGES", len(pages))
+            print("NEW_PAGES", len(newpages))
+            for np in newpages:
+                pages = [p for p in pages if p['info']['id'] != np['info']['id']] + [np]
+            print("COMBINED_PAGES", len(pages))
+        else:
+            pages = newpages
         with open(cachefile,'wt') as f: f.write(json.dumps(pages))
-        pprint(pages)
-    else:
-        with open(cachefile,'rt') as f: pages = json.loads(f.read())
 
+    for p in pages:
+        title = p['info']['properties']['title']['title'][0]['text']
+        date = isoparse(p['info']['last_edited_time']).date()
+        print("PAGE:", title, date)
+            
     # preprocess: rewrite URLs and cache resources
     urlmap = {}
     for p in pages:
