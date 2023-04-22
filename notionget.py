@@ -113,6 +113,13 @@ def formatText(snippets):
         return txt
     return ''.join(_span(t) for t in snippets or [])
 
+RE_YoutubeEmbed = re.compile('https*://.*youtube.*/embed/([^?]+)')
+RE_YoutubeWatch = re.compile('https*://.*youtube.*/watch\?v=([^&]+)')
+def extractYouTubeId(url):
+    match = RE_YoutubeWatch.match(url) or RE_YoutubeEmbed.match(url)
+    print( 'YOUTUBE check', url, match)
+    if match: return match[1]
+    
 def formatBlockText(block):
     #api is confused between rich_text and text
     content = block.get(block.get('type','xx'),{})
@@ -161,13 +168,16 @@ def blockToHtml(block, urlmap):
         'bulleted_list_item': lambda b: '<div class="connect-bulleted-item">%s</div>' % ftext,
         'numbered_list_item': lambda b: '<div class="connect-numbered-item">%s</div>' % ftext,
         'table_of_contents': lambda b: '<div class="connect-toc">%s</div>' % \
-                          '<br/>'.join('<a href="#%s">%s</a>' % (textToSlug(h),htmlToText(h)) for n,h in i['headings']),
+        '<br/>'.join('<a href="#%s">%s</a>' % (textToSlug(h),htmlToText(h)) for n,h in i['headings']),
         'embed': lambda b: '<iframe class="connect-embed" src="%s"></iframe>' % i['url'],
-        'file': lambda b: '<a class="connect-file" href="%s" target="_blank">&#x1F4E6; %s</a>' % (urlmap[b['id']], basename(i['file']['url'])),
+        'video': lambda b: '<iframe width="560" height="315" src="https://www.youtube.com/embed/%s" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>' % extractYouTubeId(i['external']['url']),
+        'file': lambda b: '<a class="connect-file" href="%s" target="_blank"e>&#x1F4E6; %s</a>' % (urlmap[b['id']], basename(i['file']['url'])),
         # summarizing
         '_drop_': lambda b: '',
         '_hoist_': lambda b: blocksToHtml(b['children'], urlmap),
         '_default': (lambda b: '<!-- UNKNOWN %r -->' % b),
+        '_thumb': lambda b: '<div class="connect-figure"><a href="%s" target="_blank"><img src="%s"/></a></div>'\
+                   % (i.get('link') or urlmap[b['id']], i.get('src') or urlmap[b['id']]),
     }
     op = OPS.get(btype) or OPS.get('_default')
     return op(block)        
@@ -247,6 +257,12 @@ def summarizePage(page):
             if counts['nimg'] <= 0:
                 block['type'] = '_drop_'
             counts['nimg'] -= 1
+        elif counts['nimg'] > 0 and block['type'] == 'video' and block['video']['type'] == 'external':
+            block['type'] = '_thumb'
+            block['_thumb'] = { 'link': ARTICLE_SLUG_PLACEHOLDER,
+                                'src': 'https://img.youtube.com/vi/%s/hqdefault.jpg'
+                                % extractYouTubeId(block['video']['external']['url']) }
+            counts['nimg'] -= 1
         elif block['type'] in ['paragraph', 'bulleted_list_item', 'numbered_list_item']:
             wc = wordCount(block)
             if counts['ntxt'] <= 0:
@@ -292,7 +308,7 @@ def summarizePage(page):
         ar.extend(flattened)
         
         # move images to the front
-        SUMSORT = { 'heading_1': 1, 'image': 2 } #?? , '_hoist_': 3 }
+        SUMSORT = { 'heading_1': 1, 'image': 2, '_thumb': 2 } #?? , '_hoist_': 3 }
         ar.sort(key=lambda b: SUMSORT.get(b['type'],100))
         # flag if trimmed
         ar.insert(0, counts['nimg'] < 0 or counts['ntxt'] < 0)
