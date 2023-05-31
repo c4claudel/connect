@@ -146,7 +146,7 @@ if __name__ == '__main__':
         src = opts.__dict__.get(addrmode)
         if src and os.path.exists(src):
             addrs = open(src,'rt',encoding='ISO-8859-1').read().split('\n')
-            addrs = [a.split(';')[0].trim() for a in addrs] #trim comments
+            addrs = [a.split(';')[0].strip() for a in addrs] #trim comments
             headers[addrmode] = [a for a in addrs if '@' in a]
             print(repr(headers[addrmode]))
             print('sending', addrmode, 'to', len(headers[addrmode]), 'recipients')

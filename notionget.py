@@ -104,14 +104,16 @@ def formatIcon(icon):
 
 def formatText(snippets):
     def _span(snippet):
-        txt = snippet['plain_text'].replace('\n','<br/>')
+        #print('SNIPPET', snippet)
+        txt = (snippet.get('plain_text') or snippet.get('text') or '').replace('\n','<br/>')
         snippet['annotations']['color'] = False #TODO color
         styles = ' '.join(['snippet-'+k for k,v in snippet['annotations'].items() if v])
         href = (snippet.get('text',{}).get('link') or {}).get('url')
         if href: txt = '<a href="%s" target="_blank" class="%s">%s</a>' % (href, styles, txt)
         elif styles: txt = '<span class="%s">%s</span>' % (styles, txt)
+        #print('  => ', txt)
         return txt
-    return ''.join(_span(t) for t in snippets or [])
+    return ''.join(_span(t) for t in snippets or [] if t)
 
 RE_YoutubeEmbed = re.compile('https*://.*youtube.*/embed/([^?]+)')
 RE_YoutubeWatch = re.compile('https*://.*youtube.*/watch\?v=([^&]+)')
@@ -150,6 +152,7 @@ def blocksToHtml(blocks, urlmap):
 
 def blockToHtml(block, urlmap):
     btype = block['type']
+    #print("BLOCK ", btype)
     i = block.get(btype) or {}
     ftext = formatBlockText(block)
     OPS = {
@@ -158,6 +161,8 @@ def blockToHtml(block, urlmap):
                                else '<h2><a href="%s">%s</a></h2>'  % (i['link'],ftext),
         'heading_2': lambda b: '<h3><a name="%s"></a>%s</h3>' % (textToSlug(ftext),ftext) if not i.get('link') \
                                else '<h3><a href="%s">%s</a></h3>'  % (i['link'],ftext),
+        'heading_3': lambda b: '<h4><a name="%s"></a>%s</h4>' % (textToSlug(ftext),ftext) if not i.get('link') \
+                               else '<h4><a href="%s">%s</a></h4>'  % (i['link'],ftext),
         'paragraph': lambda b: '<div class="connect-paragraph">%s</div>' % ftext,
         'divider': (lambda b: '<hr/>'),
         'image': (lambda b: '<div class="connect-figure"><a href="%s" target="_blank"><img src="%s"/></a><div class="connect-caption">%s</div></div>' % (i.get('link') or urlmap[b['id']],urlmap[b['id']],formatText(i['caption']) if i['caption'] else '')),
@@ -168,7 +173,10 @@ def blockToHtml(block, urlmap):
         'bulleted_list_item': lambda b: '<div class="connect-bulleted-item">%s</div>' % ftext,
         'numbered_list_item': lambda b: '<div class="connect-numbered-item">%s</div>' % ftext,
         'table_of_contents': lambda b: '<div class="connect-toc">%s</div>' % \
-        '<br/>'.join('<a href="#%s">%s</a>' % (textToSlug(h),htmlToText(h)) for n,h in i['headings']),
+                                       '<br/>'.join('<a href="#%s">%s</a>' % (textToSlug(h),htmlToText(h)) for n,h in i['headings']),
+        'table' : lambda b: '<table class="connect-table">%s</table>' % blocksToHtml(b['children'], urlmap),
+        'table_row' : lambda b: '<tr><td>%s</td></tr>' % '</td><td>'.join(blocksToHtml(cell, urlmap) for cell in i['cells']),
+        'text' : lambda b: formatText([b]),
         'embed': lambda b: '<iframe class="connect-embed" src="%s"></iframe>' % i['url'],
         'video': lambda b: '<iframe width="560" height="315" src="https://www.youtube.com/embed/%s" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>' % extractYouTubeId(i['external']['url']),
         'file': lambda b: '<a class="connect-file" href="%s" target="_blank"e>&#x1F4E6; %s</a>' % (urlmap[b['id']], basename(i['file']['url'])),
