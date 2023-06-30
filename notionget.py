@@ -107,7 +107,8 @@ def formatText(snippets):
         #print('SNIPPET', snippet)
         txt = (snippet.get('plain_text') or snippet.get('text') or '').replace('\n','<br/>')
         color = snippet['annotations'].get('color')
-        if color:
+        snippet['annotations']['color'] = False
+        if color and color != 'default':
             snippet['annotations']['color-'+color] = True
         styles = ' '.join(['snippet-'+k for k,v in snippet['annotations'].items() if v])
         href = (snippet.get('text',{}).get('link') or {}).get('url')
