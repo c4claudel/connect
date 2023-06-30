@@ -106,7 +106,9 @@ def formatText(snippets):
     def _span(snippet):
         #print('SNIPPET', snippet)
         txt = (snippet.get('plain_text') or snippet.get('text') or '').replace('\n','<br/>')
-        snippet['annotations']['color'] = False #TODO color
+        color = snippet['annotations'].get('color')
+        if color:
+            snippet['annotations']['color-'+color] = True
         styles = ' '.join(['snippet-'+k for k,v in snippet['annotations'].items() if v])
         href = (snippet.get('text',{}).get('link') or {}).get('url')
         if href: txt = '<a href="%s" target="_blank" class="%s">%s</a>' % (href, styles, txt)
@@ -177,6 +179,7 @@ def blockToHtml(block, urlmap):
         'table' : lambda b: '<table class="connect-table">%s</table>' % blocksToHtml(b['children'], urlmap),
         'table_row' : lambda b: '<tr><td>%s</td></tr>' % '</td><td>'.join(blocksToHtml(cell, urlmap) for cell in i['cells']),
         'text' : lambda b: formatText([b]),
+        'quote' : lambda b: '<blockquote>%s %s</blockquote>' % (formatText(i.get('rich_text')), blocksToHtml(b['children'], urlmap)),
         'embed': lambda b: '<iframe class="connect-embed" src="%s"></iframe>' % i['url'],
         'video': lambda b: '<iframe width="560" height="315" src="https://www.youtube.com/embed/%s" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>' % extractYouTubeId(i['external']['url']),
         'file': lambda b: '<a class="connect-file" href="%s" target="_blank"e>&#x1F4E6; %s</a>' % (urlmap[b['id']], basename(i['file']['url'])),

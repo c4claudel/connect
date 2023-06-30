@@ -18,6 +18,7 @@ a {
 }
 .snippet-bold { font-weight: 600; }
 .snippet-italic { font-style: italic; }
+.snippet-color-blue { color: #66d; }
 
 header .connect-breadcrumb-parent {
     background-color: grey;
