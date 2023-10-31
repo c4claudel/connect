@@ -364,13 +364,15 @@ if __name__ == '__main__':
     except:
         pages = []
     
+    dateLimit = datetime.date.today() - datetime.timedelta(opts.since)
+    print("DATE LIMIT:", dateLimit)
+
     if opts.since:
-        for p in pages[:]:
+        for p in pages:
             title = p['info']['properties']['title']['title'][0]['text']
             date = isoparse(p['info']['last_edited_time']).date()
             if date < dateLimit:
                 print("SKIP:", title, date)
-                pages.remove(p)
             else:
                 print("DROP:", title, date)
     
