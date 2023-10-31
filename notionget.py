@@ -56,6 +56,7 @@ class NGet():
                 if isoparse(blk['last_edited_time']).date() < dateLimit: return
                 parentTitle = parent['info']['properties']['title']['title']
                 print('CRAWL Page ',parentTitle[0]['plain_text'],'->',blk['child_page']['title'])
+                print(' mod date:', isoparse(blk['last_edited_time']).date(), 'vs', dateLimit)
                 page = self.fetchPage(blk['id'])
                 page['parent'] = { 'id': parent['info']['id'], 'title': parentTitle }
                 subpages.append(page)
@@ -240,8 +241,10 @@ def summarizePage(page):
     ptitle = page['info']['properties']['title']['title'][0]['plain_text']
 
     for block in page['blocks']:
-        if block['type'] == 'heading_1' or (len(articles)>1 and block['type']=='callout'):
+        if block['type'] == 'heading_1' \
+           or (len(articles)>1 and articles[-1][-1]['type'] != 'heading_1' and block['type']=='callout'):
             block.get('heading_1',{})['link'] = ARTICLE_SLUG_PLACEHOLDER
+            block['connect_is_heading'] = True
             articles.append([block])
         else:
             articles[-1].append(block)
@@ -295,15 +298,23 @@ def summarizePage(page):
             if block['children'] and block['children'][0]['type'] == 'table_of_contents': #except toc
                 block['type'] = '_drop_'
                 block['children'][0]['type'] = '_drop_'
-            else:
-                print('KEEP', counts)
+                print('DROP TOC CALLOUT', counts)
+            elif block.get('connect_is_heading'):
+                # increase quota to keep all callout contents
                 counts['ntxt'] += 10000
                 counts['nimg'] += 10
+                print('KEEP CALLOUT', counts)
+            else:
+                print('PART CALLOUT', counts)
         elif block['type'] in ['column_list', 'column']: #hoist children
             block['type'] = '_hoist_'                    
 
     def flattenBlocks(block, flattened):
-        if block['type'] != '_hoist_':
+        if block['type'] == '_hoist_':
+            pass
+        elif block['type'] == 'callout' and block.get('connect_is_heading'):
+            pass
+        else:
             flattened.append(block)
         
     for i,ar in enumerate(articles):
@@ -312,19 +323,24 @@ def summarizePage(page):
         print('SUMMARIZE', ptitle, atitle)
         
         walkBlocks(ar, trimSummary, None, counts)
+        #print('TRIMMED')
+        #pprint(ar)
 
         # hoist child blocks
         flattened = []
         walkBlocks(ar, flattenBlocks, None, flattened)
         ar.clear()
         ar.extend(flattened)
-        
+        #print('FLATTENED')
+        #pprint(ar)
+
         # move images to the front
         SUMSORT = { 'heading_1': 1, 'image': 2, '_thumb': 2 } #?? , '_hoist_': 3 }
         ar.sort(key=lambda b: SUMSORT.get(b['type'],100))
         # flag if trimmed
         ar.insert(0, counts['nimg'] < 0 or counts['ntxt'] < 0)
         print('SUMMARIZED', counts, ar[0], ptitle, atitle, [b['type'] for b in ar[1:]])
+        #pprint(ar)
         
     return articles
     
@@ -332,6 +348,7 @@ if __name__ == '__main__':
     Options = ArgumentParser(description='Newsletter Publisher')
     Options.add_argument('--fetch', action='store_true')
     Options.add_argument('--since', type=int)
+    Options.add_argument('--only', type=str)
     Options.add_argument('files', type=str, nargs='+')
     opts = Options.parse_args()
 
@@ -347,16 +364,15 @@ if __name__ == '__main__':
     except:
         pages = []
     
-    dateLimit = datetime.date.today() - datetime.timedelta(opts.since or 9999)
-    print("DATE LIMIT:", dateLimit)
-    
-    for p in pages:
-        title = p['info']['properties']['title']['title'][0]['text']
-        date = isoparse(p['info']['last_edited_time']).date()
-        if date < dateLimit:
-            print("SKIP:", title, date)
-        else:
-            print("DROP:", title, date)
+    if opts.since:
+        for p in pages[:]:
+            title = p['info']['properties']['title']['title'][0]['text']
+            date = isoparse(p['info']['last_edited_time']).date()
+            if date < dateLimit:
+                print("SKIP:", title, date)
+                pages.remove(p)
+            else:
+                print("DROP:", title, date)
     
     if opts.fetch:
         newpages = nget.crawl(rootid, dateLimit)
@@ -370,10 +386,16 @@ if __name__ == '__main__':
             pages = newpages
         with open(cachefile,'wt') as f: f.write(json.dumps(pages))
 
-    for p in pages:
+    for p in pages[:]:
         title = p['info']['properties']['title']['title'][0]['text']
         date = isoparse(p['info']['last_edited_time']).date()
-        print("PAGE:", title, date)
+        print(opts.only, type(title), opts.only in title)
+        if opts.only and not opts.only in title['content']:
+            print("SKIP PAGE:", title, date)
+            pages.remove(p)
+        else:
+            print("PAGE:", title, date)        
+        
             
     # preprocess: rewrite URLs and cache resources
     urlmap = {}
@@ -399,6 +421,7 @@ if __name__ == '__main__':
         articles = summarizePage(p)
         html = '<div class="connect-mail"><style>%s</style>' % open('resources/connect.css','rt').read()
         for i,ar in enumerate(articles):
+            if len(ar) < 2: continue
             href = ARTICLE_SLUG_PLACEHOLDER if ar.pop(0) else ''
             article = blocksToHtml(ar, fullurlmap)
             if SUMMARY_READMORE_PLACEHOLDER in article:
