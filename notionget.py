@@ -106,7 +106,7 @@ def formatIcon(icon):
 def formatText(snippets):
     def _span(snippet):
         #print('SNIPPET', snippet)
-        txt = (snippet.get('plain_text') or snippet.get('text') or '').replace('\n','<br/>')
+        txt = (snippet.get('plain_text') or snippet.get('text').get('content') or '').replace('\n','<br/>')
         color = snippet['annotations'].get('color')
         snippet['annotations']['color'] = False
         if color and color != 'default':
