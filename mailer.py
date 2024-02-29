@@ -44,7 +44,7 @@ class Mailer():
         self._from = fromaddr
         self._commit = commit
 
-    def send(self, subject, soup, to=None, cc=None, bcc=None):
+    def createDraft(self, subject, soup, to=None, cc=None, bcc=None):
         message = MIMEMultipart('alternative')
         message['From'] = self._from
         message['Subject'] = subject
@@ -62,31 +62,36 @@ class Mailer():
         #print(message)
         draft = self._service.users().drafts().create(userId="me", body=gmail_message).execute()
         print(f"created draft {draft}")
-        
+        return draft
+
+    def sendDraft(self, draft):
         if self._commit:
             result = self._service.users().drafts().send(userId="me", body=draft).execute()
             print(f"sent message result={result}")
-
-            ##ERROR occasionally
-            #raise HttpError(resp, content, uri=self.uri)
-            #googleapiclient.errors.HttpError: <HttpError 400 when requesting https://gmail.googleapis.com/gmail/v1/users/me/drafts/send?alt=json returned "Precondition check failed.".
-            #Details: "[{'message': 'Precondition check failed.', 'domain': 'global', 'reason': 'failedPrecondition'}]">
         else:
             print("not sending without --commit")
 
+    def send(self, subject, soup, to=None, cc=None, bcc=None):
+        draft = self.createDraft(subject, soup, to, cc, bcc)
+        self.sendDraft(draft)
+        
     def batchSend(self, batchSize, subject, soup, **kwargs):
         recp = kwargs
         if recp.get('to'): raise Exception("can't batch with TO")
         if recp.get('cc'): raise Exception("can't batch with CC")
         if not recp.get('bcc'): raise Exception("can only batch with BCC")
 
+        drafts = []
         bcc = list(recp.get('bcc'))
         while len(bcc):
             count = min(batchSize, len(bcc))
             recp['bcc'] = bcc[:count]
             bcc = bcc[count:]
             print('sending to', len(recp['bcc']))
-            self.send(subject, soup, **recp)
+            drafts.append(self.createDraft(subject, soup, **recp))
+
+        for draft in drafts:
+            self.sendDraft(draft)
             
 class Tracker():
     def __init__(self, mailer, shotid):
