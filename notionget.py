@@ -185,7 +185,7 @@ def blockToHtml(block, urlmap):
         'embed': lambda b: '<iframe class="connect-embed" src="%s"></iframe>' % i['url'],
         'video': lambda b: '<iframe width="560" height="315" src="https://www.youtube.com/embed/%s" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>' % extractYouTubeId(i['external']['url']),
         'file': lambda b: '<a class="connect-file" href="%s" target="_blank">&#x1F4E6; %s</a>' % (urlmap[b['id']], basename(i['file']['url'])),
-        'bookmark': lambda b: '<a class="connect-bookmark" href="%s" target="_blank">%s</a>' % (i['url'], i['url']),
+        'bookmark': lambda b: '<a class="connect-bookmark" href="%s" target="_blank"><b>%s</b> - <i>%s</i></a>' % (i['url'], i['url'].split('/')[2].replace('www.',''), i['url'].split('/')[-1]),
         # summarizing
         '_drop_': lambda b: '',
         '_hoist_': lambda b: blocksToHtml(b['children'], urlmap),
