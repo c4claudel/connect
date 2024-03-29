@@ -137,10 +137,10 @@ iframe.connect-embed {
     height: 20em;
 }
 .connect-bookmark {
+    display: block;
     border: 2px solid green;
     padding: 1ex;
-    margin: 1ex;
-    width: 90%;
+    margin: 1em 0 1em 0;
 }
 .connect-table {
     border-left: 1px solid black;
