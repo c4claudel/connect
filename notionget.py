@@ -160,7 +160,7 @@ def blockToHtml(block, urlmap):
     i = block.get(btype) or {}
     ftext = formatBlockText(block)
     OPS = {
-        'child_page': lambda b: '<div class="connect-childpage"><a href="%s">%s%s</a></div>' % (urlmap[b['id']],formatIcon(i.get('icon')),i['title']),
+        'child_page': lambda b: '<div class="connect-childpage"><a href="%s">%s%s</a></div>' % (urlmap.get(b['id'],'bad-url:'+b['id']),formatIcon(i.get('icon')),i['title']),
         'heading_1': lambda b: '<h2><a name="%s"></a>%s</h2>' % (textToSlug(ftext),ftext) if not i.get('link') \
                                else '<h2><a href="%s">%s</a></h2>'  % (i['link'],ftext),
         'heading_2': lambda b: '<h3><a name="%s"></a>%s</h3>' % (textToSlug(ftext),ftext) if not i.get('link') \
