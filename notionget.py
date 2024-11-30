@@ -348,7 +348,7 @@ def summarizePage(page):
 if __name__ == '__main__':
     Options = ArgumentParser(description='Newsletter Publisher')
     Options.add_argument('--fetch', action='store_true')
-    Options.add_argument('--since', type=int)
+    Options.add_argument('--since', type=int, default=30)
     Options.add_argument('--only', type=str)
     Options.add_argument('files', type=str, nargs='+')
     opts = Options.parse_args()

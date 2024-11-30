@@ -13,6 +13,7 @@ import bs4
 import os.path
 import base64
 import hashlib
+import time
 
 SCOPES = ['https://www.googleapis.com/auth/gmail.modify']
 TOKEN_FILE = 'gmail-token.json'
@@ -26,7 +27,7 @@ def djb2(text):
     return h
 
 class Mailer():
-    def __init__(self, fromaddr, commit=False, reauth=False):
+    def __init__(self, fromaddr, commit=False, reauth=False, retry=3):
         creds = None
         if not reauth and os.path.exists(TOKEN_FILE):
             creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
@@ -43,6 +44,7 @@ class Mailer():
         self._service = build('gmail', 'v1', credentials=creds)
         self._from = fromaddr
         self._commit = commit
+        self._retryCount = retry
 
     def createDraft(self, subject, soup, to=None, cc=None, bcc=None):
         message = MIMEMultipart('alternative')
@@ -65,11 +67,19 @@ class Mailer():
         return draft
 
     def sendDraft(self, draft):
-        if self._commit:
-            result = self._service.users().drafts().send(userId="me", body=draft).execute()
-            print(f"sent message result={result}")
-        else:
-            print("not sending without --commit")
+        if not self._commit:
+            print("not sending without --commit")            
+        for i in range(self._retryCount+1):
+            try:
+                result = self._service.users().drafts().send(userId="me", body=draft).execute()
+                print(f"sent message result={result}")
+                return
+            except HttpError as e:
+                print(f"failed to send message exception {e}")
+                time.sleep(1)
+                print(f"retrying #{i+1}")
+                
+                
 
     def send(self, subject, soup, to=None, cc=None, bcc=None):
         draft = self.createDraft(subject, soup, to, cc, bcc)
