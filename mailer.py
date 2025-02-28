@@ -76,10 +76,8 @@ class Mailer():
                 return
             except HttpError as e:
                 print(f"failed to send message exception {e}")
-                time.sleep(1)
+                time.sleep(self._retryCount+2)
                 print(f"retrying #{i+1}")
-                
-                
 
     def send(self, subject, soup, to=None, cc=None, bcc=None):
         draft = self.createDraft(subject, soup, to, cc, bcc)
